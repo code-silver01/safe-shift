@@ -6,6 +6,7 @@ type View = "developer" | "heatmap" | "executive";
 interface AppSidebarProps {
   activeView: View;
   onViewChange: (view: View) => void;
+  repo?: string;
 }
 
 const navItems: { id: View; label: string; icon: React.ElementType; description: string }[] = [
