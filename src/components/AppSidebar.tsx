@@ -6,6 +6,7 @@ type View = "developer" | "heatmap" | "executive";
 interface AppSidebarProps {
   activeView: View;
   onViewChange: (view: View) => void;
+  repo?: string;
 }
 
 const navItems: { id: View; label: string; icon: React.ElementType; description: string }[] = [
@@ -14,7 +15,7 @@ const navItems: { id: View; label: string; icon: React.ElementType; description:
   { id: "executive", label: "Executive Command", icon: BarChart3, description: "Business risk & ROI" },
 ];
 
-export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
+export function AppSidebar({ activeView, onViewChange, repo }: AppSidebarProps) {
   return (
     <aside className="w-64 min-h-screen bg-sidebar border-r border-border flex flex-col">
       {/* Logo */}
@@ -25,7 +26,7 @@ export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
           </div>
           <div>
             <h1 className="text-sm font-semibold text-foreground tracking-tight">SafeShift</h1>
-            <p className="text-[10px] text-muted-foreground">Strategic Engineering Intel</p>
+            <p className="text-[10px] text-muted-foreground truncate">{repo || "Strategic Engineering Intel"}</p>
           </div>
         </div>
       </div>

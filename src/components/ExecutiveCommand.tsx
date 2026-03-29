@@ -52,7 +52,7 @@ function accentClasses(accent: string) {
   }
 }
 
-export function ExecutiveCommand() {
+export function ExecutiveCommand({ repo }: { repo?: string }) {
   return (
     <div className="flex-1 p-6 overflow-auto">
       <div className="mb-6">
