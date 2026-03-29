@@ -26,7 +26,7 @@ export function AppSidebar({ activeView, onViewChange, repo }: AppSidebarProps) 
           </div>
           <div>
             <h1 className="text-sm font-semibold text-foreground tracking-tight">SafeShift</h1>
-            <p className="text-[10px] text-muted-foreground">Strategic Engineering Intel</p>
+            <p className="text-[10px] text-muted-foreground truncate">{repo || "Strategic Engineering Intel"}</p>
           </div>
         </div>
       </div>

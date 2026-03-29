@@ -61,7 +61,7 @@ function FileTreeNode({ node, depth = 0 }: { node: any; depth?: number }) {
   );
 }
 
-export function DeveloperSandbox() {
+export function DeveloperSandbox({ repo }: { repo?: string }) {
   const [simulated, setSimulated] = useState(false);
 
   return (

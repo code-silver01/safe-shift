@@ -33,7 +33,7 @@ function statusBg(status: string) {
   return "bg-risk-safe/10 border-risk-safe/20";
 }
 
-export function TeamHeatmap() {
+export function TeamHeatmap({ repo }: { repo?: string }) {
   return (
     <div className="flex-1 p-6 overflow-auto">
       <div className="mb-6">
