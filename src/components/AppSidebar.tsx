@@ -15,7 +15,7 @@ const navItems: { id: View; label: string; icon: React.ElementType; description:
   { id: "executive", label: "Executive Command", icon: BarChart3, description: "Business risk & ROI" },
 ];
 
-export function AppSidebar({ activeView, onViewChange }: AppSidebarProps) {
+export function AppSidebar({ activeView, onViewChange, repo }: AppSidebarProps) {
   return (
     <aside className="w-64 min-h-screen bg-sidebar border-r border-border flex flex-col">
       {/* Logo */}
