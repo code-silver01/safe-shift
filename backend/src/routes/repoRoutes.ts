@@ -35,12 +35,12 @@ router.post("/analyze", async (req: Request, res: Response, next: NextFunction) 
     });
 
     // Start async analysis pipeline
-    analyzeRepository(repo._id.toString()).catch((err) => {
+    analyzeRepository(repo.id).catch((err) => {
       console.error(`[ANALYSIS] Pipeline failed for ${repoName}:`, err);
     });
 
     return res.status(201).json({
-      id: repo._id,
+      id: repo.id,
       name: repo.name,
       status: repo.status,
       message: "Analysis started",
@@ -55,12 +55,12 @@ router.post("/analyze", async (req: Request, res: Response, next: NextFunction) 
 // ---------------------------------------------------------------------------
 router.get("/:id/status", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const repo = await Repository.findById(req.params.id).select("name status statusMessage progress totalFiles totalLines languages");
+    const repo = await Repository.findById(req.params.id as string);
     if (!repo) {
       return res.status(404).json({ error: "Repository not found" });
     }
     return res.json({
-      id: repo._id,
+      id: repo.id,
       name: repo.name,
       status: repo.status,
       statusMessage: repo.statusMessage,
@@ -79,7 +79,7 @@ router.get("/:id/status", async (req: Request, res: Response, next: NextFunction
 // ---------------------------------------------------------------------------
 router.get("/:id/files", async (req: Request, res: Response, next: NextFunction) => {
   try {
-    const repo = await Repository.findById(req.params.id);
+    const repo = await Repository.findById(req.params.id as string);
     if (!repo) {
       return res.status(404).json({ error: "Repository not found" });
     }
@@ -100,7 +100,7 @@ router.get("/:id/files", async (req: Request, res: Response, next: NextFunction)
     })));
 
     return res.json({
-      id: repo._id,
+      id: repo.id,
       name: repo.name,
       tree,
       flatFiles: repo.files.map((f) => ({
@@ -133,7 +133,7 @@ router.get("/:id/file-content", async (req: Request, res: Response, next: NextFu
       return res.status(400).json({ error: "filePath query parameter required" });
     }
 
-    const repo = await Repository.findById(req.params.id);
+    const repo = await Repository.findById(req.params.id as string);
     if (!repo) return res.status(404).json({ error: "Repository not found" });
 
     // Read from cloned repo if still on disk
@@ -171,9 +171,7 @@ async function analyzeRepository(repoId: string): Promise<void> {
     // Step 1: Clone
     await updateStatus(repoId, "cloning", "Cloning repository...", 5);
     const { clonePath, fullUrl } = await cloneRepo(repo.name);
-    repo.clonePath = clonePath;
-    repo.fullUrl = fullUrl;
-    await repo.save();
+    await Repository.findByIdAndUpdate(repoId, { clonePath, fullUrl });
 
     // Step 2: Scan files
     await updateStatus(repoId, "parsing", "Scanning file structure...", 15);
@@ -197,12 +195,12 @@ async function analyzeRepository(repoId: string): Promise<void> {
         testCoverage: 0,
         riskScore: 0,
         riskLevel: "low" as const,
-      });
+      } as any); // Cast as any to bypass temporary missing fields since parseFile doesn't return full IFileEntry
 
       parsed++;
-      if (parsed % 20 === 0 || parsed === filePaths.length) {
+      if (parsed % 50 === 0 || parsed === filePaths.length) {
         const progress = 20 + Math.round((parsed / filePaths.length) * 30);
-        await updateStatus(repoId, "parsing", `Parsed ${parsed}/${filePaths.length} files...`, progress);
+        updateStatus(repoId, "parsing", `Parsed ${parsed}/${filePaths.length} files...`, progress).catch(console.error);
       }
     }
 
@@ -250,7 +248,7 @@ async function analyzeRepository(repoId: string): Promise<void> {
   }
 }
 
-async function updateStatus(repoId: string, status: string, message: string, progress: number): Promise<void> {
+async function updateStatus(repoId: string, status: any, message: string, progress: number): Promise<void> {
   await Repository.findByIdAndUpdate(repoId, {
     status,
     statusMessage: message,

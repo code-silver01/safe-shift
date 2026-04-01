@@ -29,13 +29,12 @@ router.post("/:id/business-tags", async (req: Request, res: Response, next: Next
       return res.status(400).json({ error: "rules array is required" });
     }
 
-    const tags = await BusinessTag.findOneAndUpdate(
+    await BusinessTag.findOneAndUpdate(
       { repoId: req.params.id as string },
-      { repoId: req.params.id as string, rules },
-      { upsert: true, new: true }
+      { repoId: req.params.id as string, rules }
     );
 
-    return res.json({ success: true, tags });
+    return res.json({ success: true, tags: { rules } });
   } catch (err) {
     next(err);
   }

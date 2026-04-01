@@ -89,6 +89,24 @@ export function parseFile(
         ) {
           imports.push(node.arguments[0].value);
         }
+
+        // --- Test blocks (it, test, describe, specify, context) ---
+        if (
+          node.callee.type === "Identifier" &&
+          ["it", "test", "describe", "specify", "context"].includes(node.callee.name) &&
+          node.loc
+        ) {
+          const testName = node.arguments[0]?.type === "StringLiteral" 
+            ? node.arguments[0].value 
+            : node.callee.name;
+            
+          functions.push({
+            name: testName,
+            lineCount: (node.loc.end.line - node.loc.start.line) + 1,
+            startLine: node.loc.start.line,
+            params: 0,
+          });
+        }
       },
 
       // --- Exports ---

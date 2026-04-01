@@ -13,25 +13,27 @@ type View = "developer" | "heatmap" | "executive";
 const Index = () => {
   const [phase, setPhase] = useState<AppPhase>("splash");
   const [repo, setRepo] = useState("");
+  const [repoId, setRepoId] = useState("");
   const [activeView, setActiveView] = useState<View>("developer");
 
   const handleSplashComplete = useCallback(() => setPhase("input"), []);
-  const handleAnalyze = useCallback((r: string) => {
+  const handleAnalyze = useCallback((r: string, id: string) => {
     setRepo(r);
+    setRepoId(id);
     setPhase("analyzing");
   }, []);
   const handleAnalysisComplete = useCallback(() => setPhase("dashboard"), []);
 
   if (phase === "splash") return <SplashScreen onComplete={handleSplashComplete} />;
   if (phase === "input") return <RepoInput onAnalyze={handleAnalyze} />;
-  if (phase === "analyzing") return <AnalyzingScreen repo={repo} onComplete={handleAnalysisComplete} />;
+  if (phase === "analyzing") return <AnalyzingScreen repo={repo} repoId={repoId} onComplete={handleAnalysisComplete} />;
 
   return (
     <div className="flex min-h-screen bg-background">
       <AppSidebar activeView={activeView} onViewChange={setActiveView} repo={repo} />
-      {activeView === "developer" && <DeveloperSandbox repo={repo} />}
-      {activeView === "heatmap" && <TeamHeatmap repo={repo} />}
-      {activeView === "executive" && <ExecutiveCommand repo={repo} />}
+      {activeView === "developer" && <DeveloperSandbox repo={repo} repoId={repoId} />}
+      {activeView === "heatmap" && <TeamHeatmap repo={repo} repoId={repoId} />}
+      {activeView === "executive" && <ExecutiveCommand repo={repo} repoId={repoId} />}
     </div>
   );
 };

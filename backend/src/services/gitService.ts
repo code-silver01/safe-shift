@@ -108,14 +108,32 @@ export function detectLanguage(filePath: string): string {
  * Check if a file is a test file.
  */
 export function isTestFile(filePath: string): boolean {
-  const name = path.basename(filePath).toLowerCase();
-  return (
-    name.includes(".test.") ||
-    name.includes(".spec.") ||
-    name.includes("__test__") ||
-    name.startsWith("test.") ||
-    filePath.includes("__tests__") ||
-    filePath.includes("/test/") ||
-    filePath.includes("/tests/")
-  );
+  if (!filePath) return false;
+  const normalized = filePath.replace(/\\/g, "/").toLowerCase();
+  const baseName = normalized.split("/").pop() || "";
+
+  // Common test directories (including root-level)
+  const isTestDir = 
+    normalized.startsWith("test/") || 
+    normalized.startsWith("tests/") || 
+    normalized.startsWith("spec/") || 
+    normalized.startsWith("specs/") || 
+    normalized.startsWith("__tests__/") ||
+    normalized.includes("/test/") || 
+    normalized.includes("/tests/") || 
+    normalized.includes("/spec/") || 
+    normalized.includes("/__tests__/");
+
+  // Common test file extensions/suffixes
+  const isTestSuffix = 
+    baseName.includes(".test.") || 
+    baseName.includes(".spec.") || 
+    baseName.includes("_test.") || 
+    baseName.includes("_spec.") ||
+    baseName.endsWith(".test.js") ||
+    baseName.endsWith(".test.ts") ||
+    baseName.endsWith(".spec.js") ||
+    baseName.endsWith(".spec.ts");
+
+  return isTestDir || isTestSuffix;
 }

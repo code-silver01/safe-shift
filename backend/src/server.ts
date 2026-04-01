@@ -3,7 +3,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import connectDB from "./config/database.js";
+import { connectNeo4j } from "./config/neo4j.js";
 import repoRoutes from "./routes/repoRoutes.js";
 import graphRoutes from "./routes/graphRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
@@ -57,7 +57,7 @@ app.use(
 // Start
 // ---------------------------------------------------------------------------
 const start = async () => {
-  await connectDB();
+  await connectNeo4j();
   app.listen(PORT, () => {
     console.log(`[SERVER] SafeShift backend running on http://localhost:${PORT}`);
     console.log(`[SERVER] Health check: http://localhost:${PORT}/api/health`);
