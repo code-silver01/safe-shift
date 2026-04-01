@@ -3,6 +3,7 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
+import serverless from "serverless-http";
 import repoRoutes from "./routes/repoRoutes.js";
 import graphRoutes from "./routes/graphRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
@@ -57,11 +58,14 @@ app.use(
 // ---------------------------------------------------------------------------
 const start = async () => {
   console.log("[SERVER] Using IN-MEMORY storage (no Neo4j required)");
-  app.listen(PORT, () => {
-    console.log(`[SERVER] SafeShift backend running on http://localhost:${PORT}`);
-    console.log(`[SERVER] Health check: http://localhost:${PORT}/api/health`);
-    console.log("[SERVER] Ready to analyze repositories!");
-  });
+
+  if (process.env.NODE_ENV !== "production") {
+    app.listen(PORT, () => {
+      console.log(`[SERVER] SafeShift backend running on http://localhost:${PORT}`);
+      console.log(`[SERVER] Health check: http://localhost:${PORT}/api/health`);
+      console.log("[SERVER] Ready to analyze repositories!");
+    });
+  }
 };
 
 start().catch((err) => {
@@ -69,4 +73,11 @@ start().catch((err) => {
   process.exit(1);
 });
 
+start().catch((err) => {
+  console.error("[FATAL] Failed to start server:", err);
+  process.exit(1);
+});
+
+
+export const handler = serverless(app);
 export default app;
