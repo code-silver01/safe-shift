@@ -1,11 +1,12 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
 import { routePrompt } from "../services/aiRouter.js";
 import { Repository } from "../models/Repository.js";
+import { classifyPrompt, decisionToTier, type RouteDecision } from "../services/localRouter.js";
 
 const router = Router();
 
 // ---------------------------------------------------------------------------
-// POST /api/ai/route-prompt — Smart AI routing
+// POST /api/ai/route-prompt — Smart AI routing via local Transformers.js
 // ---------------------------------------------------------------------------
 router.post("/route-prompt", async (req: Request, res: Response, next: NextFunction) => {
   try {
@@ -32,56 +33,101 @@ router.post("/route-prompt", async (req: Request, res: Response, next: NextFunct
 
     const content = fileContent || "";
 
-    // MOCK DATA INJECTION
-    const lowerPrompt = prompt.toLowerCase();
-    if (lowerPrompt.includes("refactor this safely")) {
+    // ── Step 1: Local Classification (Transformers.js — zero cost) ────
+    let localDecision: RouteDecision;
+    try {
+      localDecision = await classifyPrompt(prompt);
+    } catch (routerErr) {
+      console.warn("[AI Routes] Local router failed, using heuristic fallback:", routerErr);
+      // Fallback: use the existing complexity heuristic
+      localDecision = {
+        cluster: metadata.cyclomaticComplexity > 10 ? "complex" : "simple",
+        confidence: 0.5,
+        simpleScore: 0,
+        complexScore: 0,
+        reasoning: "Fallback: local router unavailable, using complexity heuristic.",
+      };
+    }
+
+    // ── Step 2: Map decision to model tier ────────────────────────────
+    const tier = decisionToTier(localDecision);
+
+    // ── Step 3: Invoke the actual AI model via Bedrock ────────────────
+    try {
+      const result = await routePrompt(repoId, filePath || "", prompt, content, metadata);
+
       return res.json({
         success: true,
-        response: "I have analyzed the repository architecture and the blast radius of this file. Here is a high-safety refactor that extracts the database logic into a dedicated service layer to prevent side-effects in your controllers.\n\n```javascript\n// Refactored Service\nexport const userService = {\n  getAll: () => db.query('SELECT * FROM users'),\n};\n```",
-        modelName: "Claude 3.5 Sonnet",
-        modelId: "anthropic.claude-3-5-sonnet-20240620-v1:0",
-        complexityTier: "high",
-        complexityScore: 88,
-        complexityReasoning: "High complexity (score: 88). Sensitive refactoring task requiring advanced architectural reasoning. Routed to Premium Model.",
-        inputTokens: 1240,
-        outputTokens: 850,
-        costUSD: 0.0152,
+        ...result,
+        // Enrich with local router metadata
+        localRouterDecision: {
+          cluster: localDecision.cluster,
+          confidence: localDecision.confidence,
+          simpleScore: localDecision.simpleScore,
+          complexScore: localDecision.complexScore,
+          reasoning: localDecision.reasoning,
+          mappedTier: tier,
+        },
+      });
+    } catch (bedrockErr) {
+      // If Bedrock fails (missing credentials, etc.), return local classification
+      // with a helpful message — the routing analysis itself is still valuable
+      console.warn("[AI Routes] Bedrock invocation failed:", bedrockErr);
+
+      return res.json({
+        success: true,
+        response: `[Local Analysis] This task was classified as **${localDecision.cluster}** (confidence: ${(localDecision.confidence * 100).toFixed(1)}%). ${localDecision.reasoning}\n\nThe AI model is currently unavailable, but the routing decision shows this prompt would be sent to a **${tier}** tier model. Configure AWS Bedrock credentials to get a full AI response.`,
+        modelName: "Local Router (Transformers.js)",
+        modelId: "local/all-MiniLM-L6-v2",
+        complexityTier: tier,
+        complexityScore: Math.round(localDecision.complexScore * 100),
+        complexityReasoning: localDecision.reasoning,
+        inputTokens: 0,
+        outputTokens: 0,
+        costUSD: 0,
         savingsUSD: 0,
-        latencyMs: 1420
+        latencyMs: 0,
+        localRouterDecision: {
+          cluster: localDecision.cluster,
+          confidence: localDecision.confidence,
+          simpleScore: localDecision.simpleScore,
+          complexScore: localDecision.complexScore,
+          reasoning: localDecision.reasoning,
+          mappedTier: tier,
+        },
       });
     }
+  } catch (err) {
+    next(err);
+  }
+});
 
-    if (lowerPrompt.includes("explain this code")) {
-      return res.json({
-        success: true,
-        response: "This module handles the core routing logic for the User entity. It exports a router that listens for GET requests on the root path and returns a list of users from the base database connector. It's a standard Express.js controller pattern.",
-        modelName: "Amazon Nova Lite",
-        modelId: "amazon.nova-lite-v1:0",
-        complexityTier: "low",
-        complexityScore: 12,
-        complexityReasoning: "Low complexity (score: 12). Informational task with simple context. Routed to Cost-Efficient Model.",
-        inputTokens: 450,
-        outputTokens: 120,
-        costUSD: 0.00012,
-        savingsUSD: 0.0421,
-        latencyMs: 650
-      });
+// ---------------------------------------------------------------------------
+// POST /api/ai/classify — Classify a prompt locally (no Bedrock call)
+// Useful for testing the local router in isolation
+// ---------------------------------------------------------------------------
+router.post("/classify", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { prompt } = req.body;
+    if (!prompt) {
+      return res.status(400).json({ error: "prompt is required" });
     }
 
-    const result = await routePrompt(repoId, filePath || "", prompt, content, metadata);
+    const decision = await classifyPrompt(prompt);
+    const tier = decisionToTier(decision);
 
     return res.json({
-      success: true,
-      ...result,
+      prompt: prompt.slice(0, 100) + (prompt.length > 100 ? "..." : ""),
+      classification: decision.cluster,
+      tier,
+      confidence: decision.confidence,
+      scores: {
+        simple: decision.simpleScore,
+        complex: decision.complexScore,
+      },
+      reasoning: decision.reasoning,
     });
   } catch (err) {
-    // If Bedrock fails (missing credentials, etc.), return a graceful error
-    if ((err as Error).message?.includes("credentials") || (err as Error).name === "CredentialsProviderError") {
-      return res.status(503).json({
-        error: "AI service unavailable",
-        message: "AWS Bedrock credentials not configured. Please set AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY.",
-      });
-    }
     next(err);
   }
 });
@@ -96,20 +142,24 @@ router.get("/models", (_req: Request, res: Response) => {
         label: "Cost-Efficient",
         description: "For simple tasks: formatting, comments, basic refactoring",
         models: ["Amazon Nova Lite", "Amazon Titan Lite"],
+        routedBy: "Local Router → simple cluster",
       },
       mid: {
         label: "Balanced",
         description: "For moderate tasks: code review, small refactors",
         models: ["Claude 3 Haiku", "Amazon Nova Pro"],
+        routedBy: "Local Router → complex cluster (low confidence)",
       },
       premium: {
         label: "Premium",
-        description: "For complex tasks: architecture changes, security reviews",
+        description: "For complex tasks: architecture changes, blast radius analysis",
         models: ["Claude 3.5 Sonnet"],
+        routedBy: "Local Router → complex cluster (high confidence)",
       },
     },
-    routing: "Automatic — model selected based on code complexity heuristic",
+    routing: "Local Transformers.js (all-MiniLM-L6-v2) — zero cost, instant classification",
   });
 });
 
 export default router;
+

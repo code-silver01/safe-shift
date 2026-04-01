@@ -1,4 +1,8 @@
 import { Repository, type IFileEntry } from "../models/Repository.js";
+import { createRequire } from "module";
+
+// CJS interop for typhonjs-escomplex
+const require = createRequire(import.meta.url);
 
 // ---------------------------------------------------------------------------
 // Cyclomatic Complexity (simplified heuristic-based calculation)
@@ -25,8 +29,33 @@ const LOGICAL_OPS = [
   /\|\|/g,
 ];
 
+/**
+ * Calculate cyclomatic complexity using typhonjs-escomplex (McCabe's method).
+ * Falls back to regex heuristic if escomplex fails on exotic syntax.
+ */
 export function calculateComplexity(source: string): number {
-  // Strip comments and strings to avoid false positives
+  try {
+    const escomplex = require("typhonjs-escomplex");
+    const report = escomplex.analyzeModule(source, {
+      newmi: false,
+      skipCalculation: false,
+    });
+    const cyclomatic = report?.aggregate?.cyclomatic;
+    if (typeof cyclomatic === "number" && cyclomatic >= 1) {
+      return Math.round(cyclomatic);
+    }
+    return calculateComplexityFallback(source);
+  } catch {
+    // escomplex can fail on TypeScript-specific syntax, JSX, etc.
+    return calculateComplexityFallback(source);
+  }
+}
+
+/**
+ * Fallback: regex-based complexity heuristic (the original implementation).
+ * Used when escomplex can't parse the file.
+ */
+function calculateComplexityFallback(source: string): number {
   const stripped = source
     .replace(/\/\/.*$/gm, "")           // line comments
     .replace(/\/\*[\s\S]*?\*\//g, "")   // block comments

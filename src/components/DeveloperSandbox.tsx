@@ -97,42 +97,22 @@ export function DeveloperSandbox({ repo, repoId }: { repo?: string; repoId?: str
     setChatMessages(prev => [...prev, { role: "user", text: prompt }]);
     setChatLoading(true);
     try {
-      // LOCAL MOCK INTERCEPTION
-      const lowerPrompt = prompt.toLowerCase();
-      if (lowerPrompt.includes("refactor this safely")) {
-        // Artificial delay for realism
-        await new Promise(r => setTimeout(r, 800));
-        setChatMessages(prev => [...prev, {
-          role: "ai", 
-          text: "I have analyzed the repository architecture and the blast radius of this file. Here is a high-safety refactor that extracts the database logic into a dedicated service layer to prevent side-effects in your controllers.\n\n```javascript\n// Refactored Service\nexport const userService = {\n  getAll: () => db.query('SELECT * FROM users'),\n};\n```",
-          meta: { model: "Claude 3.5 Sonnet", tier: "premium", complexityScore: 88, savings: 0 }
-        }]);
-        setChatLoading(false);
-        return;
-      }
-
-      if (lowerPrompt.includes("explain this code")) {
-        await new Promise(r => setTimeout(r, 500));
-        setChatMessages(prev => [...prev, {
-          role: "ai", 
-          text: "This module handles the core routing logic for the User entity. It exports a router that listens for GET requests on the root path and returns a list of users from the base database connector. It's a standard Express.js controller pattern.",
-          meta: { model: "Amazon Nova Lite", tier: "low", complexityScore: 12, savings: 0.042 }
-        }]);
-        setChatLoading(false);
-        return;
-      }
-
       const result = await routePrompt(repoId, selectedFile, prompt, "");
       setChatMessages(prev => [...prev, {
         role: "ai", text: result.response,
-        meta: { model: result.modelName, tier: result.complexityTier, score: result.complexityScore, savings: result.savingsUSD }
+        meta: {
+          model: result.modelName,
+          tier: result.complexityTier,
+          complexityScore: result.complexityScore,
+          savings: result.savingsUSD,
+          localRouter: result.localRouterDecision,
+        }
       }]);
     } catch (err: any) {
-      // Fallback for any other prompt if server fails
-      setChatMessages(prev => [...prev, { 
-        role: "ai", 
-        text: "The AI service is currently unavailable (Likely missing AWS Credentials). \n\nHowever, I can still analyze your local topology: This file is a core module with several downstream dependencies.",
-        meta: { model: "Local Heuristic", tier: "low", complexityScore: 0, savings: 0 }
+      setChatMessages(prev => [...prev, {
+        role: "ai",
+        text: "The AI service is currently classifying locally via Transformers.js. Configure AWS Bedrock credentials for full AI responses.",
+        meta: { model: "Local Router", tier: "low", complexityScore: 0, savings: 0 }
       }]);
     }
     setChatLoading(false);
@@ -264,14 +244,23 @@ export function DeveloperSandbox({ repo, repoId }: { repo?: string; repoId?: str
                     {msg.role === "ai" && msg.meta && (
                       <div className="mb-3 flex flex-wrap gap-2 items-center">
                         <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-tighter border ${
-                          msg.meta.tier === "premium" 
+                          msg.meta.tier === "premium" || msg.meta.tier === "high"
                             ? "bg-risk-critical/10 text-risk-critical border-risk-critical/20" 
-                            : msg.meta.tier === "mid"
+                            : msg.meta.tier === "mid" || msg.meta.tier === "medium"
                             ? "bg-risk-medium/10 text-risk-medium border-risk-medium/20"
                             : "bg-risk-safe/10 text-risk-safe border-risk-safe/20"
                         }`}>
                           {msg.meta.model}
                         </div>
+                        {msg.meta.localRouter && (
+                          <div className={`px-2 py-0.5 rounded-full text-[9px] font-bold border ${
+                            msg.meta.localRouter.cluster === "complex"
+                              ? "bg-purple-500/10 text-purple-400 border-purple-500/20"
+                              : "bg-blue-500/10 text-blue-400 border-blue-500/20"
+                          }`}>
+                            🧠 {msg.meta.localRouter.cluster.toUpperCase()} ({(msg.meta.localRouter.confidence * 100).toFixed(0)}%)
+                          </div>
+                        )}
                         {msg.meta.savings > 0 && (
                           <div className="px-2 py-0.5 rounded-full bg-risk-safe/20 text-risk-safe text-[9px] font-bold border border-risk-safe/30 flex items-center gap-1">
                             <span>$</span> SAVED {msg.meta.savings.toFixed(3)}
@@ -298,7 +287,7 @@ export function DeveloperSandbox({ repo, repoId }: { repo?: string; repoId?: str
                     <div className="w-5 h-5 rounded-full bg-primary/10 flex items-center justify-center border border-primary/20">
                       <Bot className="w-3 h-3 text-primary" />
                     </div>
-                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest italic">Routing heuristic...</span>
+                    <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest italic">Classifying via Transformers.js...</span>
                   </div>
                   <div className="w-2/3 h-12 bg-accent/20 rounded-2xl rounded-tl-none border border-border/20" />
                 </div>
@@ -324,7 +313,7 @@ export function DeveloperSandbox({ repo, repoId }: { repo?: string; repoId?: str
       {/* Full-width Core Architecture Topology Graph */}
       <div className="mt-6 glass-card p-6">
         <h3 className="text-sm font-medium text-foreground uppercase tracking-wider mb-6 flex items-center gap-2">
-          Dependency Graph: Core Modules
+          🧠 TS Compiler API — Dependency Graph with Community Detection
         </h3>
         <DependencyGraphVisualizer repoId={repoId} selectedFile={selectedFile} blastFiles={blastFiles} />
       </div>

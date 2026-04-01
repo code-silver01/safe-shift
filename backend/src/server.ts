@@ -3,7 +3,6 @@ import express from "express";
 import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
-import { connectNeo4j } from "./config/neo4j.js";
 import repoRoutes from "./routes/repoRoutes.js";
 import graphRoutes from "./routes/graphRoutes.js";
 import aiRoutes from "./routes/aiRoutes.js";
@@ -26,7 +25,7 @@ app.use(express.urlencoded({ extended: true }));
 // Routes
 // ---------------------------------------------------------------------------
 app.get("/api/health", (_req, res) => {
-  res.json({ status: "ok", timestamp: new Date().toISOString() });
+  res.json({ status: "ok", timestamp: new Date().toISOString(), storage: "in-memory" });
 });
 
 app.use("/api/repo", repoRoutes);
@@ -54,13 +53,14 @@ app.use(
 );
 
 // ---------------------------------------------------------------------------
-// Start
+// Start — No database required!
 // ---------------------------------------------------------------------------
 const start = async () => {
-  await connectNeo4j();
+  console.log("[SERVER] Using IN-MEMORY storage (no Neo4j required)");
   app.listen(PORT, () => {
     console.log(`[SERVER] SafeShift backend running on http://localhost:${PORT}`);
     console.log(`[SERVER] Health check: http://localhost:${PORT}/api/health`);
+    console.log("[SERVER] Ready to analyze repositories!");
   });
 };
 

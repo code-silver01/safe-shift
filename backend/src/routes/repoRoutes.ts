@@ -243,7 +243,10 @@ async function analyzeRepository(repoId: string): Promise<void> {
     await updateStatus(repoId, "error", `Analysis failed: ${(error as Error).message}`, 0);
     // Attempt cleanup
     if (repo.clonePath) {
-      try { await cleanupRepo(repo.clonePath); } catch { /* ignore */ }
+      try { 
+        await cleanupRepo(repo.clonePath); 
+        await Repository.findByIdAndUpdate(repoId, { clonePath: "" });
+      } catch { /* ignore */ }
     }
   }
 }

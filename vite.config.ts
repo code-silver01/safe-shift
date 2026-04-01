@@ -11,6 +11,9 @@ export default defineConfig(({ mode }) => ({
     hmr: {
       overlay: false,
     },
+    watch: {
+      ignored: ['**/backend/workspace/**']
+    },
     proxy: {
       "/api": {
         target: "http://localhost:3001",

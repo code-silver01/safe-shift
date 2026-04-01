@@ -51,4 +51,47 @@ router.post("/:id/simulate", async (req: Request, res: Response, next: NextFunct
   }
 });
 
+// ---------------------------------------------------------------------------
+// GET /api/repo/:id/ts-graph — TS Compiler API Graph + Community Detection
+// ---------------------------------------------------------------------------
+router.get("/:id/ts-graph", async (req: Request, res: Response, next: NextFunction) => {
+  try {
+    const { Repository } = await import("../models/Repository.js");
+    const repo = await Repository.findById(req.params.id as string);
+    if (!repo) {
+      return res.status(404).json({ error: "Repository not found" });
+    }
+    if (!repo.clonePath) {
+      return res.status(400).json({ error: "Repository has not been cloned. Run analysis first." });
+    }
+
+    const fs = await import("fs");
+    if (!fs.existsSync(repo.clonePath)) {
+      return res.status(404).json({ error: "Repository files no longer exist on disk. Please re-run the analysis." });
+    }
+
+    const { buildTsCompilerGraph } = await import("../services/tsCompilerGraph.js");
+    const graph = buildTsCompilerGraph(repo.clonePath);
+
+    return res.json({
+      repoId: req.params.id,
+      nodes: graph.nodes.map((n) => ({
+        id: n.id,
+        label: n.label,
+        type: n.language,
+        community: n.community,
+        isEntryPoint: n.isEntryPoint,
+        inDegree: n.inDegree,
+        outDegree: n.outDegree,
+        externalImports: n.externalImports,
+      })),
+      edges: graph.edges,
+      communities: graph.communities,
+      stats: graph.stats,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
 export default router;
