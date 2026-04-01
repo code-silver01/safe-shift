@@ -1,4 +1,4 @@
-const BASE = "http://13.232.152.86:3001/api";
+const BASE = "/api";
 
 async function request<T>(path: string, opts?: RequestInit): Promise<T> {
   const res = await fetch(`${BASE}${path}`, {
