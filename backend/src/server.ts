@@ -73,10 +73,7 @@ start().catch((err) => {
   process.exit(1);
 });
 
-start().catch((err) => {
-  console.error("[FATAL] Failed to start server:", err);
-  process.exit(1);
-});
+
 
 
 export const handler = serverless(app);
