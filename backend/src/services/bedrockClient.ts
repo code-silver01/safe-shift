@@ -9,25 +9,25 @@ import {
 // ---------------------------------------------------------------------------
 export const MODEL_PRICING: Record<string, { input: number; output: number }> = {
   // Claude models
-  "anthropic.claude-3-haiku-20240307-v1:0":   { input: 0.00025, output: 0.00125 },
-  "anthropic.claude-3-5-sonnet-20241022-v2:0": { input: 0.003,   output: 0.015 },
+  "anthropic.claude-3-haiku-20240307-v1:0": { input: 0.00025, output: 0.00125 },
+  "anthropic.claude-3-5-sonnet-20241022-v2:0": { input: 0.003, output: 0.015 },
   // Amazon Nova
-  "amazon.nova-lite-v1:0":                     { input: 0.00006, output: 0.00024 },
-  "amazon.nova-pro-v1:0":                      { input: 0.0008,  output: 0.0032 },
+  "amazon.nova-lite-v1:0": { input: 0.00006, output: 0.00024 },
+  "amazon.nova-pro-v1:0": { input: 0.0008, output: 0.0032 },
   // Amazon Titan
-  "amazon.titan-text-lite-v1":                 { input: 0.00015, output: 0.0002 },
-  "amazon.titan-text-express-v1":              { input: 0.0002,  output: 0.0006 },
+  "amazon.titan-text-lite-v1": { input: 0.00015, output: 0.0002 },
+  "amazon.titan-text-express-v1": { input: 0.0002, output: 0.0006 },
 };
 
 // Model tier mapping
 export const MODEL_TIERS = {
   cheap: [
-    { id: "amazon.nova-lite-v1:0",        name: "Amazon Nova Lite" },
-    { id: "amazon.titan-text-lite-v1",     name: "Amazon Titan Lite" },
+    { id: "amazon.nova-lite-v1:0", name: "Amazon Nova Lite" },
+    { id: "amazon.titan-text-lite-v1", name: "Amazon Titan Lite" },
   ],
   mid: [
     { id: "anthropic.claude-3-haiku-20240307-v1:0", name: "Claude 3 Haiku" },
-    { id: "amazon.nova-pro-v1:0",                    name: "Amazon Nova Pro" },
+    { id: "amazon.nova-pro-v1:0", name: "Amazon Nova Pro" },
   ],
   premium: [
     { id: "anthropic.claude-3-5-sonnet-20241022-v2:0", name: "Claude 3.5 Sonnet" },
@@ -40,16 +40,15 @@ export const PREMIUM_MODEL_ID = "anthropic.claude-3-5-sonnet-20241022-v2:0";
 // ---------------------------------------------------------------------------
 // Client singleton
 // ---------------------------------------------------------------------------
+// ---------------------------------------------------------------------------
+// Client singleton
+// ---------------------------------------------------------------------------
 let client: BedrockRuntimeClient | null = null;
 
 export function getBedrockClient(): BedrockRuntimeClient {
   if (!client) {
     client = new BedrockRuntimeClient({
-      region: process.env.AWS_REGION || "us-east-1",
-      credentials: {
-        accessKeyId: process.env.AWS_ACCESS_KEY_ID || "",
-        secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || "",
-      },
+      region: process.env.AWS_REGION || "ap-south-1",
     });
   }
   return client;
