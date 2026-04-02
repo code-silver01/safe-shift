@@ -35,7 +35,7 @@ export const MODEL_TIERS = {
 };
 
 // Premium model for savings calculation baseline
-export const PREMIUM_MODEL_ID = "anthropic.claude-3-5-sonnet-20241022-v2:0";
+export const PREMIUM_MODEL_ID = "anthropic.claude-3-haiku-20240307-v1:0";
 
 // ---------------------------------------------------------------------------
 // Client singleton
