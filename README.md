@@ -51,7 +51,7 @@ Modern software development often suffers from a "visibility gap." Engineering t
 - **Visualizations:** Recharts & React Force Graph
 
 ### Backend
-- **Runtime:** Node.js (Express)
+- **Runtime:** Node.js (Express) + EC2(AWS0
 - **Language:** TypeScript
 - **Analysis Engine:** 
   - `typhonjs-escomplex` (Cyclomatic Complexity)
@@ -97,9 +97,9 @@ The application will be available at `http://localhost:8080` (Frontend) and `htt
 ## 👥 Team SafeShift
 | Name | Role |
 | :--- | :--- |
-| **Aditya Goel** | Core Developer |
-| **Ashutosh Dwivedi** | Core Developer |
-| **Sudhansu Kumar** | Core Developer |
+| **Aditya Goel** | Full-Stack Developer |
+| **Ashutosh Dwivedi** | Product Developer |
+| **Sudhansu Kumar** | AWS Developer |
 
 ---
 
